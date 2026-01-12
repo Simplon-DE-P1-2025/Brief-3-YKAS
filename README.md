@@ -25,3 +25,42 @@ pip install -r requirements.txt
 
 # 5. Recuperer les CSV
 python src/download_data.py
+
+# 📜 Règles et Convention Git
+
+### 1. Les Branches
+* 🔴 **`main`** : Production stable. **INTERDIT** de pousser dessus directement.
+* 🟡 **`dev`** : Branche commune. Tout le monde part de `dev` et fusionne vers `dev`.
+* 🟢 **`feat/xxx`** : Votre branche de travail personnel.
+
+### 2. Le Workflow (La boucle de travail)
+1.  **Se mettre à jour** :
+    ```bash
+    git checkout dev
+    git pull origin dev
+    ```
+2.  **Créer sa branche** :
+    ```bash
+    git checkout -b type/initiales-description
+    ```
+3.  **Travailler, commiter et pousser** :
+    ```bash
+    git add .
+    git commit -m "mon message clair"
+    git push
+    ```
+4.  **Fusionner** :
+    * Aller sur GitHub.
+    * Créer une **Pull Request (PR)** vers `dev`.
+    * **Attendre la validation** d'un collègue avant de merger.
+
+### 3. Convention de Nommage
+Structure : `type/INITIALES-description-courte`
+
+* **Types autorisés :**
+    * `feat` : Nouvelle fonctionnalité
+    * `fix` : Correction de bug
+    * `docs` : Mise à jour documentation
+* **Exemples :**
+    * `feat/NM-connexion-bdd`
+    * `fix/NM-colonne-date`
