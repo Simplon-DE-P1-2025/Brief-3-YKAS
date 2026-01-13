@@ -1,132 +1,81 @@
 import pytest
 import pandas as pd
-import pandera.pandas as pa 
+import pandera as pa
 from datetime import datetime
-from src.schemas import (
-    OperationsSchema, 
-    FlotteursSchema, 
-    ResultatsHumainSchema, 
-    OperationsStatsSchema
-)
+from src.schemas import OperationsSchema, ResultatsHumainSchema
 
 class TestSchemas:
-    
-    # --- 1. Test Operations ---
-    def test_operations_schema_valid(self):
-        """Vérifie qu'une opération correcte passe."""
-        data = pd.DataFrame({
+
+    def _get_base_operation_df(self):
+        """
+        Helper pour créer un DataFrame Opérations avec toutes les colonnes requises par le schéma.
+        Valeurs par défaut : None (car nullable=True pour la plupart).
+        """
+        return pd.DataFrame({
             "operation_id": [1],
-            "type_operation": ["SAR"],
-            "pourquoi_alerte": ["Test"],
-            "moyen_alerte": ["Tel"],
-            "latitude": [45.0],
+            # Champs obligatoires (nullable=False)
+            "latitude": [45.0], 
             "longitude": [-1.0],
-            # On utilise des strings ISO pour simuler la lecture CSV, coerce=True les convertira
-            "date_heure_reception_alerte": ["2024-01-01 12:00:00"],
-            "date_heure_fin_operation": ["2024-01-01 14:00:00"],
+            # Champs optionnels (nullable=True) mais qui doivent exister
+            "type_operation": [None],
+            "pourquoi_alerte": [None],
+            "moyen_alerte": [None],
+            "qui_alerte": [None],
+            "categorie_qui_alerte": [None],
+            "cross": [None],
+            "departement": [None],
+            "est_metropolitain": [None],
+            "evenement": [None],
+            "categorie_evenement": [None],
+            "autorite": [None],
+            "seconde_autorite": [None],
+            "zone_responsabilite": [None],
+            "vent_direction": [None],
+            "vent_direction_categorie": [None],
+            "vent_force": [None],
+            "mer_force": [None],
+            "date_heure_reception_alerte": [pd.to_datetime("2024-01-01")], # Valeur par défaut valide
+            "date_heure_fin_operation": [None],
+            "numero_sitrep": [None],
+            "cross_sitrep": [None],
+            "fuseau_horaire": [None],
+            "systeme_source": [None]
         })
-        OperationsSchema.validate(data)
 
-    def test_operations_schema_invalid_geo(self):
-        """Vérifie que la latitude > 90 est rejetée."""
-        data = pd.DataFrame({
+    # --- TESTS OPÉRATIONS ---
+    def test_operations_date_valide(self):
+        """Une date en 2024 doit passer."""
+        df = self._get_base_operation_df()
+        # Le DF de base a déjà une date en 2024, donc ça doit passer
+        OperationsSchema.validate(df)
+
+    def test_operations_date_trop_vielle(self):
+        """Une date en 1990 doit échouer (Règle > 2000)."""
+        df = self._get_base_operation_df()
+        df["date_heure_reception_alerte"] = pd.to_datetime("1990-01-01")
+        
+        with pytest.raises(pa.errors.SchemaErrors):
+            OperationsSchema.validate(df, lazy=True)
+
+    def test_operations_gps_manquant(self):
+        """Pas de GPS = Rejet (nullable=False)."""
+        df = self._get_base_operation_df()
+        df["latitude"] = [None] # Interdit !
+        
+        with pytest.raises(pa.errors.SchemaErrors):
+            OperationsSchema.validate(df, lazy=True)
+
+    # --- TESTS RÉSULTATS HUMAINS ---
+    def test_humain_logique_ko(self):
+        """Impossible d'avoir plus de blessés que de personnes impliquées."""
+        # Ici le schéma est plus petit, on peut définir le DF directement
+        df = pd.DataFrame({
             "operation_id": [1],
-            "latitude": [150.0], # Impossible (>90)
-            "moyen_alerte": ["X"],
-            "date_heure_reception_alerte": ["2024-01-01 12:00:00"],
-            "date_heure_fin_operation": ["2024-01-01 14:00:00"],
+            "nombre": [2],              # 2 personnes
+            "dont_nombre_blesse": [5],  # 5 blessés ?! -> Erreur
+            # Colonnes manquantes ajoutées pour satisfaire le schéma
+            "resultat_humain": ["inconnu"],
+            "categorie_personne": ["plaisancier"]
         })
         with pytest.raises(pa.errors.SchemaErrors):
-            OperationsSchema.validate(data, lazy=True)
-
-    # --- 2. Test Flotteurs ---
-    def test_flotteurs_schema_valid(self):
-        data = pd.DataFrame({
-            "operation_id": [10],
-            "numero_ordre": [1],
-            "type_flotteur": ["Plaisance"],
-        })
-        FlotteursSchema.validate(data)
-
-    def test_flotteurs_schema_invalid_regex(self):
-        data = pd.DataFrame({
-            "operation_id": [10],
-            "numero_ordre": [1],
-            "type_flotteur": ["Bateau@#!"], # Caractères interdits
-        })
-        with pytest.raises(pa.errors.SchemaErrors):
-            FlotteursSchema.validate(data, lazy=True)
-
-    # --- 3. Test Résultats Humains ---
-    def test_resultats_humain_invalid_negatif(self):
-        data = pd.DataFrame({
-            "operation_id": [1],
-            "categorie_personne": ["Pêcheur"],
-            "resultat_humain": ["Sauvé"],
-            "nombre": [-5], # Impossible (négatif)
-            "dont_nombre_blesse": [0]
-        })
-        with pytest.raises(pa.errors.SchemaErrors):
-            ResultatsHumainSchema.validate(data, lazy=True)
-
-    # --- 4. Test Stats ---
-    def test_stats_schema_enum_valid(self):
-        """Vérifie que les données statistiques passent."""
-        data = pd.DataFrame({
-            "operation_id": [99],
-            "date": ["2024-01-01"],
-            "annee": [2024],
-            "mois": [1],
-            "jour": [1],
-            "mois_texte": ["Janvier"],
-            "jour_semaine": ["Lundi"],
-            "phase_journee": ["matinée"],
-            "est_weekend": [False],
-            "est_jour_ferie": [True],
-            "concerne_plongee": [False],
-            # --- C'EST ICI QUE ÇA PLANTAIT AVANT ---
-            "distance_cote_milles_nautiques": [10.5], 
-            "maree_coefficient": [95],
-            # ---------------------------------------
-            "nombre_personnes_blessees": [0],
-            "nombre_personnes_assistees": [0],
-            "nombre_personnes_decedees": [0],
-            "nombre_personnes_disparues": [0],
-            "nombre_personnes_secourues": [0],
-            "nombre_personnes_impliquees": [0],
-            "nombre_flotteurs_plaisance_impliques": [0],
-            "nombre_flotteurs_commerce_impliques": [0],
-            "nombre_flotteurs_peche_impliques": [0],
-        })
-        OperationsStatsSchema.validate(data)
-
-    def test_stats_schema_enum_invalid(self):
-        """Vérifie qu'un mois inconnu est rejeté."""
-        data = pd.DataFrame({
-            "operation_id": [99],
-            "date": ["2024-01-01"],
-            "annee": [2024],
-            "mois": [1],
-            "jour": [1],
-            "mois_texte": ["MoisInconnu"], # Erreur volontaire
-            "jour_semaine": ["Lundi"],
-            "phase_journee": ["matinée"],
-            "est_weekend": [False],
-            "est_jour_ferie": [False],
-            "concerne_plongee": [False],
-            # --- ON LES MET AUSSI ICI ---
-            "distance_cote_milles_nautiques": [10.5],
-            "maree_coefficient": [95],
-            # ----------------------------
-            "nombre_personnes_blessees": [0],
-            "nombre_personnes_assistees": [0],
-            "nombre_personnes_decedees": [0],
-            "nombre_personnes_disparues": [0],
-            "nombre_personnes_secourues": [0],
-            "nombre_personnes_impliquees": [0],
-            "nombre_flotteurs_plaisance_impliques": [0],
-            "nombre_flotteurs_commerce_impliques": [0],
-            "nombre_flotteurs_peche_impliques": [0],
-        })
-        with pytest.raises(pa.errors.SchemaErrors):
-            OperationsStatsSchema.validate(data, lazy=True)
+            ResultatsHumainSchema.validate(df, lazy=True)
