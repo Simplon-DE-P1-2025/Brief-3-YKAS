@@ -21,7 +21,6 @@ class TestSchemas:
             "moyen_alerte": ["Tel"],
             "latitude": [45.0],
             "longitude": [-1.0],
-            # On utilise des strings ISO pour simuler la lecture CSV, coerce=True les convertira
             "date_heure_reception_alerte": ["2024-01-01 12:00:00"],
             "date_heure_fin_operation": ["2024-01-01 14:00:00"],
         })
@@ -31,7 +30,7 @@ class TestSchemas:
         """Vérifie que la latitude > 90 est rejetée."""
         data = pd.DataFrame({
             "operation_id": [1],
-            "latitude": [150.0], # Impossible (>90)
+            "latitude": [150.0],
             "moyen_alerte": ["X"],
             "date_heure_reception_alerte": ["2024-01-01 12:00:00"],
             "date_heure_fin_operation": ["2024-01-01 14:00:00"],
@@ -39,7 +38,6 @@ class TestSchemas:
         with pytest.raises(pa.errors.SchemaErrors):
             OperationsSchema.validate(data, lazy=True)
 
-    # --- 2. Test Flotteurs ---
     def test_flotteurs_schema_valid(self):
         data = pd.DataFrame({
             "operation_id": [10],
@@ -52,12 +50,11 @@ class TestSchemas:
         data = pd.DataFrame({
             "operation_id": [10],
             "numero_ordre": [1],
-            "type_flotteur": ["Bateau@#!"], # Caractères interdits
+            "type_flotteur": ["Bateau@#!"],
         })
         with pytest.raises(pa.errors.SchemaErrors):
             FlotteursSchema.validate(data, lazy=True)
 
-    # --- 3. Test Résultats Humains ---
     def test_resultats_humain_invalid_negatif(self):
         data = pd.DataFrame({
             "operation_id": [1],
@@ -84,10 +81,8 @@ class TestSchemas:
             "est_weekend": [False],
             "est_jour_ferie": [True],
             "concerne_plongee": [False],
-            # --- C'EST ICI QUE ÇA PLANTAIT AVANT ---
             "distance_cote_milles_nautiques": [10.5], 
             "maree_coefficient": [95],
-            # ---------------------------------------
             "nombre_personnes_blessees": [0],
             "nombre_personnes_assistees": [0],
             "nombre_personnes_decedees": [0],
@@ -108,16 +103,14 @@ class TestSchemas:
             "annee": [2024],
             "mois": [1],
             "jour": [1],
-            "mois_texte": ["MoisInconnu"], # Erreur volontaire
+            "mois_texte": ["MoisInconnu"], 
             "jour_semaine": ["Lundi"],
             "phase_journee": ["matinée"],
             "est_weekend": [False],
             "est_jour_ferie": [False],
             "concerne_plongee": [False],
-            # --- ON LES MET AUSSI ICI ---
             "distance_cote_milles_nautiques": [10.5],
             "maree_coefficient": [95],
-            # ----------------------------
             "nombre_personnes_blessees": [0],
             "nombre_personnes_assistees": [0],
             "nombre_personnes_decedees": [0],

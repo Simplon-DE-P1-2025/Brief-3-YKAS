@@ -21,7 +21,7 @@ REJECTS_DIR.mkdir(parents=True, exist_ok=True)
 def process_file(filename, schema):
     """
     Lit un fichier brut, le valide via Pandera, et sauvegarde :
-    - Les données valides dans data/processed/
+    - Les données valides dans data/processed/ (avec suffixe _processed)
     - Les données invalides dans data/rejects/
     """
     file_path = RAW_DIR / filename
@@ -38,8 +38,7 @@ def process_file(filename, schema):
         print(f"[ERROR] Erreur critique lecture CSV : {e}")
         return
 
-    # 2. Conversion des Types (Nettoyage préalable)
-    
+    # 2. Conversion des Types (Dates)
     date_cols = [col for col in df.columns if 'date' in col or 'heure' in col]
     for col in date_cols:
         if col in df.columns:
@@ -48,7 +47,6 @@ def process_file(filename, schema):
     # 3. Validation Pandera
     try:
         schema.validate(df, lazy=True)
-
         valid_df = df
         rejects_df = pd.DataFrame()
         print(f"[OK] Validation parfaite : {len(df)} lignes valides.")
@@ -56,20 +54,26 @@ def process_file(filename, schema):
     except pa.errors.SchemaErrors as err:
         print(f"[WARN] Validation partielle : {len(err.failure_cases)} anomalies détectées.")
         
-        # Identification des lignes en erreur
-        # err.failure_cases renvoie un DataFrame avec les détails des erreurs (index, colonne, etc.)
-        error_indices = err.failure_cases["index"].unique()
+        failure_cases = err.failure_cases
+        error_indices = failure_cases["index"].dropna().unique()
+        safe_error_indices = [i for i in error_indices if i in df.index]
         
-        # Séparation
-        rejects_df = df.loc[error_indices]
-        valid_df = df.drop(index=error_indices)
-        
+        if safe_error_indices:
+            rejects_df = df.loc[safe_error_indices]
+            valid_df = df.drop(index=safe_error_indices)
+        else:
+            print("[WARN] Erreurs globales détectées sans index précis. Rejet total par sécurité.")
+            rejects_df = df
+            valid_df = pd.DataFrame(columns=df.columns)
+
         print(f"   -> {len(valid_df)} lignes valides conservées")
         print(f"   -> {len(rejects_df)} lignes rejetées")
 
     # 4. Sauvegarde
     if not valid_df.empty:
-        output_path = PROCESSED_DIR / filename
+        new_filename = filename.replace(".csv", "_processed.csv")
+        output_path = PROCESSED_DIR / new_filename
+        
         valid_df.to_csv(output_path, index=False)
         print(f"[OK] Sauvegardé dans : {output_path}")
     
@@ -81,7 +85,6 @@ def process_file(filename, schema):
 def main():
     print("Demarrage du nettoyage des données...\n")
 
-    # Liste des tâches :er)
     tasks = [
         ("operations.csv", OperationsSchema),
         ("flotteurs.csv", FlotteursSchema),
