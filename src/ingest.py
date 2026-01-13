@@ -1,98 +1,80 @@
 import os
-import pandas as pd
-import pandera as pa
+import requests
 from pathlib import Path
+from typing import Dict, Optional
 
-from src.schemas import (
-    OperationsSchema, 
-    FlotteursSchema, 
-    ResultatsHumainSchema, 
-    OperationsStatsSchema
-)
+# --- CONFIGURATION ---
+DATASET_ID = "operations-coordonnees-par-les-cross"
+API_URL = f"https://www.data.gouv.fr/api/1/datasets/{DATASET_ID}/"
 
+# Définition des dossiers (data/raw)
 BASE_DIR = Path(__file__).resolve().parent.parent
 RAW_DIR = BASE_DIR / "data" / "raw"
-PROCESSED_DIR = BASE_DIR / "data" / "processed"
-REJECTS_DIR = BASE_DIR / "data" / "rejects"
 
-PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
-REJECTS_DIR.mkdir(parents=True, exist_ok=True)
+# Mapping : "Nom exact sur data.gouv" -> (Dossier destination, Nom fichier local)
+TARGET_FILES: Dict[str, tuple] = {
+    "operations.csv": (RAW_DIR, "operations.csv"),
+    "flotteurs.csv": (RAW_DIR, "flotteurs.csv"),
+    "resultats_humain.csv": (RAW_DIR, "resultats_humain.csv"),
+    "operations_stats.csv": (RAW_DIR, "operations_stats.csv"),
+}
 
-def process_file(filename, schema):
+
+def download_file(url: str, folder: Path, filename: str) -> Optional[Path]:
     """
-    Lit un fichier brut, le valide via Pandera, et sauvegarde :
-    - Les données valides dans data/processed/
-    - Les données invalides dans data/rejects/
+    Télécharge UN SEUL fichier avec gestion des timeouts et stream.
     """
-    file_path = RAW_DIR / filename
-    if not file_path.exists():
-        print(f"[WARN] Fichier introuvable : {filename} (ignoré)")
-        return
+    output_path = folder / filename
 
-    print(f"\n[INFO] Traitement de '{filename}'...")
-    
-    # 1. Lecture du CSV
     try:
-        df = pd.read_csv(file_path, low_memory=False)
-    except Exception as e:
-        print(f"[ERROR] Erreur critique lecture CSV : {e}")
-        return
+        print(f"Téléchargement de '{filename}'...")
+        # Timeout de 30s pour éviter les blocages si le réseau est lent
+        response = requests.get(url, stream=True, timeout=30)
+        response.raise_for_status()
 
-    # 2. Conversion des Types (Nettoyage préalable)
-    
-    date_cols = [col for col in df.columns if 'date' in col or 'heure' in col]
-    for col in date_cols:
-        if col in df.columns:
-            df[col] = pd.to_datetime(df[col], utc=True, errors='coerce')
+        with open(output_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
 
-    # 3. Validation Pandera
-    try:
-        schema.validate(df, lazy=True)
+        print(f"[OK] Enregistré dans : {output_path}")
+        return output_path
 
-        valid_df = df
-        rejects_df = pd.DataFrame()
-        print(f"[OK] Validation parfaite : {len(df)} lignes valides.")
+    except requests.exceptions.RequestException as e:
+        print(f"[ERREUR] Échec sur {filename} : {e}")
+        return None
 
-    except pa.errors.SchemaErrors as err:
-        print(f"[WARN] Validation partielle : {len(err.failure_cases)} anomalies détectées.")
-        
-        # Identification des lignes en erreur
-        # err.failure_cases renvoie un DataFrame avec les détails des erreurs (index, colonne, etc.)
-        error_indices = err.failure_cases["index"].unique()
-        
-        # Séparation
-        rejects_df = df.loc[error_indices]
-        valid_df = df.drop(index=error_indices)
-        
-        print(f"   -> {len(valid_df)} lignes valides conservées")
-        print(f"   -> {len(rejects_df)} lignes rejetées")
-
-    # 4. Sauvegarde
-    if not valid_df.empty:
-        output_path = PROCESSED_DIR / filename
-        valid_df.to_csv(output_path, index=False)
-        print(f"[OK] Sauvegardé dans : {output_path}")
-    
-    if not rejects_df.empty:
-        reject_path = REJECTS_DIR / f"rejects_{filename}"
-        rejects_df.to_csv(reject_path, index=False)
-        print(f"[INFO] Rejets sauvegardés dans : {reject_path}")
 
 def main():
-    print("Demarrage du nettoyage des données...\n")
+    # Création automatique du dossier data/raw s'il n'existe pas
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Liste des tâches :er)
-    tasks = [
-        ("operations.csv", OperationsSchema),
-        ("flotteurs.csv", FlotteursSchema),
-        ("resultats_humain.csv", ResultatsHumainSchema),
-        ("operations_stats.csv", OperationsStatsSchema),
-    ]
+    print(f"Récupération des métadonnées via API pour : {DATASET_ID}...")
 
-    for filename, schema_class in tasks:
-        process_file(filename, schema_class)
+    try:
+        # On interroge l'API pour avoir les vrais liens de téléchargement à jour
+        response = requests.get(API_URL, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+    except Exception as e:
+        print(f"Impossible de contacter l'API data.gouv.fr : {e}")
+        return
 
-    print("\nTerminé. Vérifie le dossier 'data/processed'.")
+    # On parcourt les ressources disponibles sur la page du dataset
+    resources = data.get('resources', [])
+    found_count = 0
+
+    for resource in resources:
+        title = resource.get('title')
+        url = resource.get('url')
+
+        # Si le titre correspond à l'un de nos fichiers cibles
+        if title in TARGET_FILES:
+            target_folder, target_name = TARGET_FILES[title]
+            download_file(url, target_folder, target_name)
+            found_count += 1
+
+    print(f"Terminé ! {found_count} fichiers récupérés sur {len(TARGET_FILES)} attendus.")
+
 
 if __name__ == "__main__":
     main()
