@@ -1,66 +1,203 @@
-# Brief-3-YKAS
-Mise en place d'une solution de gestion de données et d'une interface analytique polyvalente - Sabine Ali Yohan Khalid
+# 🌊 Solution de Gestion de Données & Interface Analytique — SECMAR
 
-# 🌊 Projet Data Engineering : Opérations CROSS
+Ce projet propose une **solution Data Engineering complète** dédiée à la gestion et à l’analyse des opérations de **surveillance et de sauvetage en mer (CROSS)**.
 
-Ce projet vise à consolider, nettoyer et analyser les données des opérations de surveillance et de sauvetage en mer (CROSS).
+Il s’appuie sur une **architecture modulaire et robuste**, couvrant l’ensemble du cycle de vie de la donnée :  
+**ingestion → normalisation → validation → stockage → visualisation & édition**.
 
-## 🛠️ Installation (Windows / PowerShell)
+L’infrastructure repose sur :
+- une **base de données PostgreSQL conteneurisée (Docker)**  
+- une **interface interactive Streamlit** permettant à la fois l’analyse (KPIs) et la gestion des données (CRUD)
 
-À faire une seule fois pour configurer le projet sur votre machine.
+---
 
-```powershell
-# 1. Cloner le projet (si ce n'est pas déjà fait)
+## 🏗 Architecture Technique
+
+Le pipeline suit une logique **ETL (Extract – Transform – Load)** séquentielle et contrôlée :
+
+1. **Ingestion** (`ingest.py`)  
+   Récupération automatisée des jeux de données CSV depuis l’API **data.gouv.fr**
+
+2. **Normalisation** (`normalize.py`)  
+   Nettoyage technique des données :
+   - encodage
+   - formatage des chaînes
+   - suppression des accents
+   - homogénéisation des valeurs
+
+3. **Validation** (`validate.py`)  
+   Contrôle qualité strict via **Pandera** :
+   - séparation des données conformes (**processed**)
+   - isolation des données non conformes (**rejects**)
+
+4. **Chargement** (`load_local.py`)  
+   Injection optimisée des données validées dans **PostgreSQL** via **SQLAlchemy**
+
+5. **Interface Utilisateur** (`streamlit_app.py`)  
+   Dashboard interactif connecté en temps réel à la base SQL
+
+---
+
+## 📂 Structure du Projet
+
+```text
+Brief-3-YKAS/
+├── data/                  # Entrepôt local (ignoré par Git)
+│   ├── raw/               # Données brutes téléchargées
+│   ├── normalize/         # Données nettoyées (intermédiaire)
+│   ├── processed/         # Données validées prêtes pour la BDD
+│   └── rejects/           # Données rejetées (logs qualité)
+├── src/
+│   ├── ingest.py          # Extraction via API Open Data
+│   ├── normalize.py       # Nettoyage et normalisation
+│   ├── schemas.py         # Règles de validation Pandera
+│   ├── validate.py        # Validation et routage Valid / Reject
+│   ├── models.py          # Modèles relationnels SQLAlchemy
+│   ├── load_local.py      # Chargement PostgreSQL (Docker)
+│   └── streamlit_app.py   # Dashboard & CRUD
+├── docker-compose.yml     # PostgreSQL + Adminer
+└── requirements.txt       # Dépendances Python
+
+## ⚙️ Prérequis
+
+Avant de commencer, assurez-vous d’avoir installé :
+
+- **Docker Desktop** (doit être lancé)
+- **Python 3.9+**
+- **Git**
+
+---
+
+## 🚀 Installation
+
+### 1️⃣ Clonage du dépôt & environnement virtuel
+
+```bash
+# Cloner le dépôt
 git clone https://github.com/Simplon-DE-P1-2025/Brief-3-YKAS.git
+
 cd Brief-3-YKAS
 
-# 2. Créer l'environnement virtuel Python
+# Créer l'environnement virtuel
 python -m venv .venv
 
-# 3. Activer l'environnement (Vous verrez (.venv) apparaître)
+# Activer l'environnement
+# Windows
 .\.venv\Scripts\Activate
 
-# 4. Installer les outils nécessaires
+# macOS / Linux
+source .venv/bin/activate
+
+2️⃣ Installation des dépendances
 pip install -r requirements.txt
 
-# 5. Recuperer les CSV
-python src/download_data.py
+3️⃣ Démarrage de l’infrastructure Docker
 
-# 📜 Règles et Convention Git
+Cette commande lance la base de données PostgreSQL ainsi que l’interface d’administration Adminer.
 
-### 1. Les Branches
-* 🔴 **`main`** : Production stable. **INTERDIT** de pousser dessus directement.
-* 🟡 **`dev`** : Branche commune. Tout le monde part de `dev` et fusionne vers `dev`.
-* 🟢 **`feat/xxx`** : Votre branche de travail personnel.
+docker-compose up -d
 
-### 2. Le Workflow (La boucle de travail)
-1.  **Se mettre à jour** :
-    ```bash
-    git checkout dev
-    git pull origin dev
-    ```
-2.  **Créer sa branche** :
-    ```bash
-    git checkout -b type/initiales-description
-    ```
-3.  **Travailler, commiter et pousser** :
-    ```bash
-    git add .
-    git commit -m "mon message clair"
-    git push
-    ```
-4.  **Fusionner** :
-    * Aller sur GitHub.
-    * Créer une **Pull Request (PR)** vers `dev`.
-    * **Attendre la validation** d'un collègue avant de merger.
+Accès Adminer
 
-### 3. Convention de Nommage
-Structure : `type/INITIALES-description-courte`
+URL : http://localhost:8080
 
-* **Types autorisés :**
-    * `feat` : Nouvelle fonctionnalité
-    * `fix` : Correction de bug
-    * `docs` : Mise à jour documentation
-* **Exemples :**
-    * `feat/NM-connexion-bdd`
-    * `fix/NM-colonne-date`
+Système : PostgreSQL
+
+Serveur : db
+
+Utilisateur : admin
+
+Mot de passe : admin
+
+Base de données : maritime
+
+▶️ Exécution du Pipeline ETL
+
+⚠️ L’ordre d’exécution est important afin de garantir l’intégrité et la qualité des données.
+
+Étape 1 — Ingestion
+
+Téléchargement des dernières données Open Data.
+
+python -m src.ingest
+
+Étape 2 — Normalisation
+
+Nettoyage des formats hétérogènes (encodage, chaînes de caractères, homogénéisation).
+
+python -m src.normalize
+
+Étape 3 — Validation Qualité
+
+Contrôle du typage et des règles métier.
+Cette étape génère deux sorties :
+
+data/processed/ → données conformes
+
+data/rejects/ → données rejetées (logs qualité)
+
+python -m src.validate
+
+Étape 4 — Chargement en Base
+
+Alimentation de la base PostgreSQL locale avec les données validées.
+
+python -m src.load_local
+
+📊 Utilisation de l’Application
+
+Une fois la base de données alimentée, lancez le dashboard Streamlit :
+
+streamlit run src/streamlit_app.py
+
+Fonctionnalités clés
+📈 Dashboard Live
+
+Visualisation des opérations
+
+Filtres dynamiques par :
+
+année
+
+CROSS
+
+✏️ CRUD réel
+
+Formulaires permettant :
+
+l’ajout d’opérations (INSERT)
+
+la suppression d’opérations (DELETE)
+
+➡️ Actions appliquées directement en base de données
+
+🧩 Audit & Modélisation
+
+## Visualisation du modèle relationnel des données
+
+🛠 Stack Technique
+
+Langage : Python
+
+Base de données : PostgreSQL
+
+Infrastructure : Docker
+
+ORM : SQLAlchemy
+
+Qualité de données : Pandera
+
+Frontend : Streamlit, Plotly, Graphviz
+
+
+## 👥 Auteurs
+
+Projet réalisé par l’équipe Data Engineering — Simplon :
+
+Sabine
+
+Ali
+
+Yohan
+
+Khalid
