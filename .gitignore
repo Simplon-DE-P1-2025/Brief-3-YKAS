@@ -217,7 +217,6 @@ htmlcov/
 # --- SPECIFIQUE PROJET DATA ---
 
 # Ignorer les gros fichiers de données
-*.parquet
 *.xlsx
 *.xls
 
