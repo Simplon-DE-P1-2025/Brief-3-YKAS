@@ -37,20 +37,17 @@ def load_data():
             data[key] = pd.DataFrame()
 
     # 2. CORRECTION CRITIQUE : Création de la colonne 'date' standardisée pour Ops
-    # On cherche la colonne qui contient la date principale
     df_ops = data["ops"]
     if not df_ops.empty:
+        # Recherche intelligente de la colonne date
         if 'date_heure_reception_alerte' in df_ops.columns:
             df_ops['date'] = df_ops['date_heure_reception_alerte']
         elif 'date_operation' in df_ops.columns:
             df_ops['date'] = df_ops['date_operation']
         else:
-            # Fallback : on prend la première colonne qui contient "date" dans son nom
             cols = [c for c in df_ops.columns if 'date' in c.lower()]
             if cols:
                 df_ops['date'] = df_ops[cols[0]]
-            else:
-                st.error("Impossible de trouver une colonne de date dans le fichier opérations.")
     
     return df_ops, data["flo"], data["hum"], data["stats"]
 
@@ -91,7 +88,6 @@ def main():
     st.sidebar.markdown("---")
     st.sidebar.header("Filtres")
     
-    # Sécurité sur le dropna pour éviter les erreurs si des dates sont nulles
     years = sorted(df_ops['date'].dt.year.dropna().unique(), reverse=True)
     
     if not years:
@@ -104,7 +100,7 @@ def main():
     ops_yr = df_ops[df_ops['date'].dt.year == selected_year]
     ids_yr = ops_yr['operation_id'].unique()
     
-    # Filtrage des enfants (si les tables ne sont pas vides)
+    # Filtrage des enfants (avec sécurité si vide)
     flo_yr = df_flo[df_flo['operation_id'].isin(ids_yr)] if not df_flo.empty else pd.DataFrame()
     hum_yr = df_hum[df_hum['operation_id'].isin(ids_yr)] if not df_hum.empty else pd.DataFrame()
 
@@ -121,7 +117,6 @@ def main():
         # Calcul Taux de réussite
         if not hum_yr.empty and 'resultat_humain' in hum_yr.columns:
             sauves = hum_yr[hum_yr['resultat_humain'].str.contains('sauve', case=False, na=False)]
-            # Eviter la division par zéro
             taux = (len(sauves) / len(hum_yr)) * 100 if len(hum_yr) > 0 else 0
             k4.metric("Taux de Sauvetage", f"{taux:.1f}%")
         else:
@@ -132,11 +127,9 @@ def main():
         with c1:
             st.subheader("Saisonnalité des interventions")
             if not ops_yr.empty:
-                # Tri des mois correct
                 ops_yr['Mois'] = ops_yr['date'].dt.month_name()
                 monthly_counts = ops_yr['Mois'].value_counts().reset_index()
                 monthly_counts.columns = ['Mois', 'Nombre']
-                # Ordre chronologique approximatif pour le graphique
                 st.bar_chart(data=monthly_counts.set_index('Mois'))
             
         with c2:
@@ -167,9 +160,15 @@ def main():
             
         with tab2:
             st.subheader("Flotte engagée")
+            # ⚠️ CORRECTION ICI : Gestion des NaN pour éviter le crash Plotly
             if not flo_yr.empty and 'categorie_flotteur' in flo_yr.columns:
-                fig2 = px.sunburst(flo_yr, path=['categorie_flotteur', 'type_flotteur'], title="Hiérarchie des moyens")
-                st.plotly_chart(fig2, use_container_width=True)
+                # On remplit les trous par "Inconnu"
+                flo_clean = flo_yr.fillna("Inconnu")
+                try:
+                    fig2 = px.sunburst(flo_clean, path=['categorie_flotteur', 'type_flotteur'], title="Hiérarchie des moyens")
+                    st.plotly_chart(fig2, use_container_width=True)
+                except ValueError:
+                    st.warning("Données insuffisantes pour afficher la hiérarchie solaire.")
             else:
                 st.info("Pas de données de flotteurs pour cette année.")
 
@@ -183,7 +182,7 @@ def main():
             try:
                 plot_schema()
             except Exception:
-                st.warning("Graphviz n'est pas installé sur le serveur, affichage impossible.")
+                st.warning("Graphviz n'est pas installé ou détecté.")
             
         with c2:
             st.subheader("Règles de Gestion")
