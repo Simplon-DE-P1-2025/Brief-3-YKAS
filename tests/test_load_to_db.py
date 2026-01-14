@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 from sqlalchemy import create_engine, text
-from src import loadtodb 
+from . import load_to_db 
 
 class TestLoad:
     
@@ -14,7 +14,6 @@ class TestLoad:
             "col_normale": ["ok"]
         })
 
-        # On applique la logique de nettoyage (copiée de ton script load.py)
         df_dirty.columns = df_dirty.columns.str.replace('_m999', '')
         if 'date_operation' in df_dirty.columns:
             df_dirty.rename(columns={'date_operation': 'date'}, inplace=True)
