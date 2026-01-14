@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.11"] # On peut se limiter à 3.11 pour aller vite
+        python-version: ["3.11"]
 
     steps:
     - uses: actions/checkout@v4
@@ -21,19 +21,18 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-        cache: 'pip' # <--- Ajouté pour accélérer les tests suivants
+        cache: 'pip'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        # On installe pytest-cov au cas où il manque dans requirements.txt
+        pip install pytest-cov 
 
     - name: Run pytest with coverage
-      env:
-        # --- C'EST ICI LA CORRECTION CRUCIALE ---
-        PYTHONPATH: ${{ github.workspace }}
       run: |
-        pytest tests/ -v --tb=short --cov=src --cov-report=term-missing --cov-report=xml
+        pytest -v --tb=short --cov=src --cov-report=term-missing --cov-report=xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
