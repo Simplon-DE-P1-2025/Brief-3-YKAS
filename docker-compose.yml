@@ -1,24 +1,23 @@
 services:
-  # 1. Le Serveur de Base de Données
+  # 1. Le Serveur de Base de Donnees
   db:
     image: postgres:15
-    container_name: secmar_postgres
     restart: always
     environment:
-      POSTGRES_USER: admin # Ton login
-      POSTGRES_PASSWORD: admin # Ton mot de passe
-      POSTGRES_DB: maritime # Le nom de la base
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: maritime
     ports:
-      - "5432:5432" # Ouvre le port sur ton PC
+      - "5432:5432"
     volumes:
-      - pg_data:/var/lib/postgresql/data # Pour ne pas perdre les données si tu éteins Docker
+      - pg_data:/var/lib/postgresql/data
 
-  # 2. L'interface visuelle (Optionnel mais pratique)
+  # 2. L'interface visuelle
   adminer:
     image: adminer
     restart: always
     ports:
-      - "8080:8080"
+      - "8081:8080"
 
 volumes:
   pg_data:
