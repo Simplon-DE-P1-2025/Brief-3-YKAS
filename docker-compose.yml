@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: brief3_postgres
+    environment:
+      POSTGRES_DB: brief3
+      POSTGRES_USER: brief3_user
+      POSTGRES_PASSWORD: brief3_pwd
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
