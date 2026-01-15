@@ -10,12 +10,43 @@ try:
     HAS_GRAPHVIZ = True
 except ImportError:
     HAS_GRAPHVIZ = False
+from src.db_manager import db_manager
+from src.load_to_duckdb import duckdb_data_loader
+import logging
+
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="SeCMAR Manager", layout="wide", page_icon="⚓")
 
 # --- CONNEXION BDD ---
 DB_URL = "postgresql://admin:admin@localhost:5432/maritime"
+
+# --- INITIALISATION DB (Lazy Loading) ---
+# Import conditionnel pour éviter les dépendances circulaires
+try:
+    
+    # Vérification et initialisation automatique si nécessaire
+    if not db_manager.is_initialized():
+        with st.spinner("🔧 Initialisation de la base de données..."):
+            logging.info("Base de données non initialisée - Création en cours")
+            
+            # Création du schéma
+            db_manager.initialize_schema()
+            
+            # Chargement des données
+            try:
+                duckdb_data_loader.load_all_data()
+                st.success("✅ Base de données initialisée avec succès!")
+            except Exception as e:
+                st.error(f"❌ Erreur lors du chargement des données : {e}")
+                logging.error(f"Échec du chargement : {e}", exc_info=True)
+    else:
+        logging.info("✓ Base de données déjà initialisée")
+        
+except ImportError as e:
+    logging.warning(f"Modules DB non disponibles : {e}")
+    st.info("Mode démo : Utilisation des fichiers Parquet uniquement")
+
 
 @st.cache_resource
 def get_engine():

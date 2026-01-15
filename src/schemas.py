@@ -1,4 +1,4 @@
-import pandera.pandas as pa
+import pandera as pa
 from pandera.typing import Series
 from datetime import datetime
 import pandas as pd

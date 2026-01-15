@@ -9,3 +9,6 @@ python-dotenv
 streamlit
 plotly
 graphviz
+
+# --- initialisation BD ---
+duckdb>=1.2.2
