@@ -58,48 +58,50 @@ Brief-3-YKAS/
 ├── docker-compose.yml     # PostgreSQL + Adminer
 └── requirements.txt       # Dépendances Python
 
-## ⚙️ Prérequis
+⚙️ Prérequis
 
 Avant de commencer, assurez-vous d’avoir installé :
 
-- **Docker Desktop** (doit être lancé)
-- **Python 3.9+**
-- **Git**
+Docker Desktop (doit être lancé)
 
----
+Python 3.9+
 
-## 🚀 Installation
+Git
 
-### 1️⃣ Clonage du dépôt & environnement virtuel
+🚀 Installation
+1️⃣ Clonage du dépôt & environnement virtuel
+Bash
 
-```bash
 # Cloner le dépôt
-git clone https://github.com/Simplon-DE-P1-2025/Brief-3-YKAS.git
-
+git clone [https://github.com/Simplon-DE-P1-2025/Brief-3-YKAS.git](https://github.com/Simplon-DE-P1-2025/Brief-3-YKAS.git)
 cd Brief-3-YKAS
 
 # Créer l'environnement virtuel
 python -m venv .venv
 
 # Activer l'environnement
-# Windows
+# Windows :
 .\.venv\Scripts\Activate
-
-# macOS / Linux
+# macOS / Linux :
 source .venv/bin/activate
-
 2️⃣ Installation des dépendances
+Bash
+
 pip install -r requirements.txt
+3️⃣ Configuration de l'environnement
+Créez un fichier .env à la racine du projet et ajoutez-y la ligne suivante :
 
-3️⃣ Démarrage de l’infrastructure Docker
+Ini, TOML
 
+DATABASE_URL=postgresql://admin:admin@localhost:5432/maritime
+4️⃣ Démarrage de l’infrastructure Docker
 Cette commande lance la base de données PostgreSQL ainsi que l’interface d’administration Adminer.
 
+Bash
+
 docker-compose up -d
-
-Accès Adminer
-
-URL : http://localhost:8080
+🐳 Accès Adminer
+URL : http://localhost:8081
 
 Système : PostgreSQL
 
@@ -112,71 +114,57 @@ Mot de passe : admin
 Base de données : maritime
 
 ▶️ Exécution du Pipeline ETL
-
-⚠️ L’ordre d’exécution est important afin de garantir l’intégrité et la qualité des données.
+⚠️ Important : L’ordre d’exécution est primordial pour garantir l’intégrité référentielle des données.
 
 Étape 1 — Ingestion
-
 Téléchargement des dernières données Open Data.
 
+Bash
+
 python -m src.ingest
-
 Étape 2 — Normalisation
+Nettoyage des formats hétérogènes.
 
-Nettoyage des formats hétérogènes (encodage, chaînes de caractères, homogénéisation).
+Bash
 
 python -m src.normalize
-
 Étape 3 — Validation Qualité
+Contrôle du typage et des règles métier (Pandera).
 
-Contrôle du typage et des règles métier.
-Cette étape génère deux sorties :
-
-data/processed/ → données conformes
-
-data/rejects/ → données rejetées (logs qualité)
+Bash
 
 python -m src.validate
-
 Étape 4 — Chargement en Base
+Alimentation de la base PostgreSQL locale.
 
-Alimentation de la base PostgreSQL locale avec les données validées.
+Bash
 
 python -m src.load_local
-
 📊 Utilisation de l’Application
-
 Une fois la base de données alimentée, lancez le dashboard Streamlit :
 
-streamlit run src/streamlit_app.py
+Bash
 
+streamlit run src/streamlit_app.py
 Fonctionnalités clés
 📈 Dashboard Live
+Visualisation des opérations avec filtres dynamiques :
 
-Visualisation des opérations
+Par Année
 
-Filtres dynamiques par :
+Par CROSS
 
-année
+✏️ CRUD Réel
+Formulaires permettant d'interagir directement avec la BDD :
 
-CROSS
+Ajout d’opérations (INSERT)
 
-✏️ CRUD réel
-
-Formulaires permettant :
-
-l’ajout d’opérations (INSERT)
-
-la suppression d’opérations (DELETE)
-
-➡️ Actions appliquées directement en base de données
+Suppression d’opérations (DELETE)
 
 🧩 Audit & Modélisation
-
-## Visualisation du modèle relationnel des données
+Visualisation du modèle relationnel des données (Graphviz).
 
 🛠 Stack Technique
-
 Langage : Python
 
 Base de données : PostgreSQL
@@ -189,9 +177,7 @@ Qualité de données : Pandera
 
 Frontend : Streamlit, Plotly, Graphviz
 
-
-## 👥 Auteurs
-
+👥 Auteurs
 Projet réalisé par l’équipe Data Engineering — Simplon :
 
 Sabine
