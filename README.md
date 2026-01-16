@@ -57,6 +57,7 @@ Brief-3-YKAS/
 │   └── streamlit_app.py   # Dashboard & CRUD
 ├── docker-compose.yml     # PostgreSQL + Adminer
 └── requirements.txt       # Dépendances Python
+```text
 
 ### ⚙️ Prérequis
 
@@ -159,6 +160,10 @@ Une fois la base de données alimentée, lancez le dashboard Streamlit :
 ```bash
 streamlit run src/streamlit_app.py
 ```
+
+### Pytest
+
+### workflow git
 
 ### Fonctionnalités clés
 
