@@ -57,7 +57,7 @@ Brief-3-YKAS/
 │   └── streamlit_app.py   # Dashboard & CRUD
 ├── docker-compose.yml     # PostgreSQL + Adminer
 └── requirements.txt       # Dépendances Python
-```text
+```
 
 ### ⚙️ Prérequis
 
