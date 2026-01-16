@@ -53,20 +53,21 @@ def validate_and_split(original_filename, schema):
         print(f"[OK] 100% Valide ({len(df)} lignes).")
 
     except pa.errors.SchemaErrors as err:
-        print(f"[WARN] {len(err.failure_cases)} erreurs détectées.")
+        print(f"[WARN] {len(err.failure_cases)} erreurs de validation détectées.")
         
+        # Isoler les lignes valides et rejetées
         error_indices = err.failure_cases["index"].dropna().unique()
-        safe_indices = [i for i in error_indices if i in df.index]
-        
-        if safe_indices:
-            rejects_df = df.loc[safe_indices]
-            valid_df = df.drop(index=safe_indices)
-        else:
-            rejects_df = df
-            valid_df = pd.DataFrame(columns=df.columns)
+        rejects_df = df.loc[error_indices]
+        valid_df = df.drop(index=error_indices)
 
-        print(f"   -> {len(valid_df)} lignes VALIDATED")
-        print(f"   -> {len(rejects_df)} lignes REJECTED")
+        print(f"   -> {len(valid_df)} lignes CONFORMES")
+        print(f"   -> {len(rejects_df)} lignes NON CONFORMES")
+
+        # --- Amélioration : Sauvegarder les raisons du rejet ---
+        reasons_filename = original_filename.replace('.csv', '_reasons.csv')
+        reasons_path = REJECTS_DIR / reasons_filename
+        err.failure_cases.to_csv(reasons_path, index=False)
+        print(f"[SAVE] Détails des rejets : {reasons_path.name}")
 
     # --- Sauvegarde avec les nouveaux suffixes ---
     if not valid_df.empty:

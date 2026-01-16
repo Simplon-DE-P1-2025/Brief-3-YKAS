@@ -37,14 +37,15 @@ class OperationsSchema(pa.DataFrameModel):
         # IMPORTANT: si NaT => on accepte (sinon rejet massif)
         return series.isna() | (series.dt.year >= 2000)
 
-    numero_sitrep: Series[float] = pa.Field(nullable=True)
+    # Corrigé : `numero_sitrep` peut être alphanumérique
+    numero_sitrep: Series[str] = pa.Field(nullable=True)
     cross_sitrep: Series[str] = pa.Field(nullable=True)
     fuseau_horaire: Series[str] = pa.Field(nullable=True)
     systeme_source: Series[str] = pa.Field(nullable=True)
 
     class Config:
         coerce = True
-        strict = False
+        strict = False # False pour autoriser les colonnes non définies
 
 
 class ResultatsHumainSchema(pa.DataFrameModel):
@@ -102,20 +103,52 @@ class OperationsStatsSchema(pa.DataFrameModel):
     nom_dst: Series[str] = pa.Field(nullable=True)
     prefecture_maritime: Series[str] = pa.Field(nullable=True)
     maree_port: Series[str] = pa.Field(nullable=True)
-    maree_coefficient: Series[float] = pa.Field(nullable=True, ge=0, le=200)
+    maree_coefficient: Series[int] = pa.Field(nullable=True, ge=0, le=200) # Corrigé: int
     maree_categorie: Series[str] = pa.Field(nullable=True)
-    nombre_personnes_blessees: Series[int] = pa.Field(ge=0)
-    nombre_personnes_assistees: Series[int] = pa.Field(ge=0)
-    nombre_personnes_decedees: Series[int] = pa.Field(ge=0)
-    nombre_personnes_disparues: Series[int] = pa.Field(ge=0)
-    nombre_personnes_impliquees: Series[int] = pa.Field(ge=0)
-    nombre_personnes_retrouvees: Series[int] = pa.Field(ge=0)
-    nombre_personnes_secourues: Series[int] = pa.Field(ge=0)
-    nombre_personnes_tirees_daffaire_seule: Series[int] = pa.Field(ge=0)
-    nombre_personnes_tous_deces: Series[int] = pa.Field(ge=0)
-    nombre_personnes_tous_deces_ou_disparues: Series[int] = pa.Field(ge=0)
+    
+    # Indicateur non persisté en BDD mais utile pour la validation
     sans_flotteur_implique: Series[bool] = pa.Field(nullable=True)
+
+    # --- Synchronisation avec `models.py` ---
+
+    # Stats Flotteurs
+    nombre_flotteurs_commerce_impliques: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_flotteurs_peche_impliques: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_flotteurs_plaisance_impliques: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_flotteurs_loisirs_nautiques_impliques: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_aeronefs_impliques: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_flotteurs_autre_impliques: Series[int] = pa.Field(nullable=True, ge=0)
+    
+    # Stats Humains (Standard)
+    nombre_personnes_impliquees: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_assistees: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_secourues: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_tirees_daffaire_seule: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_retrouvees: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_disparues: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_decedees: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_decedees_naturellement: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_decedees_accidentellement: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_blessees: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_impliquees_dans_fausse_alerte: Series[int] = pa.Field(nullable=True, ge=0)
+
+    # Stats "Tous décès"
+    nombre_personnes_tous_deces: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_tous_deces_ou_disparues: Series[int] = pa.Field(nullable=True, ge=0)
+    
+    # Stats "Sans Clandestins"
+    nombre_personnes_impliquees_sans_clandestins: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_assistees_sans_clandestins: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_secourues_sans_clandestins: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_tirees_daffaire_seule_sans_clandestins: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_retrouvees_sans_clandestins: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_disparues_sans_clandestins: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_decedees_sans_clandestins: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_decedees_naturellement_sans_clandestins: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_decedees_accidentellement_sans_clandestins: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_blessees_sans_clandestins: Series[int] = pa.Field(nullable=True, ge=0)
+    nombre_personnes_impliquees_dans_fausse_alerte_sans_clandestins: Series[int] = pa.Field(nullable=True, ge=0)
 
     class Config:
         coerce = True
-        strict = False
+        strict = False # False pour autoriser les colonnes non définies

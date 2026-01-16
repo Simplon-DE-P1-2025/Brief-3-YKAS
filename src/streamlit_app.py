@@ -37,18 +37,14 @@ def run_query(query, params=None):
         return False, str(e)
 
 def load_table(table_name):
+    """Charge une table complète depuis la base de données."""
     try:
         with engine.connect() as conn:
+            # pd.read_sql gère déjà la conversion des types de date/heure de la BDD
             df = pd.read_sql(f"SELECT * FROM {table_name}", conn)
-        
-        # 3. Conversion sécurisée des dates
-        for col in df.columns:
-            # On ne convertit que les colonnes qui sont VRAIMENT des dates
-            if col in ['date_heure_reception_alerte', 'date_operation', 'date_heure_fin_operation', 'date']:
-                df[col] = pd.to_datetime(df[col], utc=True, errors="coerce")
         return df
     except Exception as e:
-        st.error(f"Erreur lecture table {table_name}: {e}")
+        st.error(f"Erreur de lecture de la table '{table_name}': {e}")
         return pd.DataFrame()
 
 def get_smart_dropdown_list():

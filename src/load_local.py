@@ -52,21 +52,10 @@ def load_file(filename, table_name, engine, parent_ids=None):
 
     print(f"[LECTURE] Chargement de {path.name}...")
     df = pd.read_csv(path, low_memory=False)
+    # Remplacement des NaN par None pour la compatibilité SQL
     df = df.where(pd.notnull(df), None)
 
-    # --- FIX DATE ---
-    if table_name == "operations":
-        if "date_operation" in df.columns and "date_heure_reception_alerte" not in df.columns:
-            df.rename(columns={"date_operation": "date_heure_reception_alerte"}, inplace=True)
-
-    elif table_name == "operations_stats":
-        if "date_operation" in df.columns and "date" not in df.columns:
-            df.rename(columns={"date_operation": "date"}, inplace=True)
-
-    # Conversion datetime (robuste)
-    for col in df.columns:
-        if "date" in col.lower() or "heure" in col.lower():
-            df[col] = pd.to_datetime(df[col], utc=True, errors="coerce")
+    # Le renommage et la conversion de date sont maintenant faits dans normalize.py et validate.py
 
     # Filtrage des colonnes selon le modèle SQLAlchemy
     try:
