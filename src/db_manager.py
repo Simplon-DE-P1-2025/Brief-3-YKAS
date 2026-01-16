@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 from contextlib import contextmanager
 from typing import Optional
-from config import DB_FILE, DB_DIR, SQL_SCHEMA_FILE
+from src.config import DB_FILE, DB_DIR, SQL_SCHEMA_FILE
 
 logger = logging.getLogger(__name__)
 
