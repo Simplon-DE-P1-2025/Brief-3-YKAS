@@ -58,22 +58,21 @@ Brief-3-YKAS/
 ├── docker-compose.yml     # PostgreSQL + Adminer
 └── requirements.txt       # Dépendances Python
 
-⚙️ Prérequis
+### ⚙️ Prérequis
 
 Avant de commencer, assurez-vous d’avoir installé :
 
-Docker Desktop (doit être lancé)
+- Docker Desktop (doit être lancé)
+- Python 3.9+
+- Git
 
-Python 3.9+
+### 🚀 Installation
 
-Git
+1️⃣ **Clonage du dépôt & environnement virtuel**
 
-🚀 Installation
-1️⃣ Clonage du dépôt & environnement virtuel
-Bash
-
+```bash
 # Cloner le dépôt
-git clone [https://github.com/Simplon-DE-P1-2025/Brief-3-YKAS.git](https://github.com/Simplon-DE-P1-2025/Brief-3-YKAS.git)
+git clone https://github.com/Simplon-DE-P1-2025/Brief-3-YKAS.git
 cd Brief-3-YKAS
 
 # Créer l'environnement virtuel
@@ -84,106 +83,117 @@ python -m venv .venv
 .\.venv\Scripts\Activate
 # macOS / Linux :
 source .venv/bin/activate
-2️⃣ Installation des dépendances
-Bash
+```
 
+2️⃣ **Installation des dépendances**
+
+```bash
 pip install -r requirements.txt
-3️⃣ Configuration de l'environnement
-Créez un fichier .env à la racine du projet et ajoutez-y la ligne suivante :
+```
 
-Ini, TOML
+3️⃣ **Configuration de l'environnement**
 
+Créez un fichier `.env` à la racine du projet et ajoutez-y la ligne suivante :
+
+```ini
 DATABASE_URL=postgresql://admin:admin@localhost:5432/maritime
-4️⃣ Démarrage de l’infrastructure Docker
+```
+
+4️⃣ **Démarrage de l’infrastructure Docker**
+
 Cette commande lance la base de données PostgreSQL ainsi que l’interface d’administration Adminer.
 
-Bash
-
+```bash
 docker-compose up -d
-🐳 Accès Adminer
-URL : http://localhost:8081
+```
 
-Système : PostgreSQL
+### 🐳 Accès Adminer
 
-Serveur : db
+- **URL :** `http://localhost:8081`
+- **Système :** `PostgreSQL`
+- **Serveur :** `db`
+- **Utilisateur :** `admin`
+- **Mot de passe :** `admin`
+- **Base de données :** `maritime`
 
-Utilisateur : admin
+### ▶️ Exécution du Pipeline ETL
 
-Mot de passe : admin
+⚠️ **Important :** L’ordre d’exécution est primordial pour garantir l’intégrité référentielle des données.
 
-Base de données : maritime
+**Étape 1 — Ingestion**
 
-▶️ Exécution du Pipeline ETL
-⚠️ Important : L’ordre d’exécution est primordial pour garantir l’intégrité référentielle des données.
-
-Étape 1 — Ingestion
 Téléchargement des dernières données Open Data.
 
-Bash
-
+```bash
 python -m src.ingest
-Étape 2 — Normalisation
+```
+
+**Étape 2 — Normalisation**
+
 Nettoyage des formats hétérogènes.
 
-Bash
-
+```bash
 python -m src.normalize
-Étape 3 — Validation Qualité
+```
+
+**Étape 3 — Validation Qualité**
+
 Contrôle du typage et des règles métier (Pandera).
 
-Bash
-
+```bash
 python -m src.validate
-Étape 4 — Chargement en Base
+```
+
+**Étape 4 — Chargement en Base**
+
 Alimentation de la base PostgreSQL locale.
 
-Bash
-
+```bash
 python -m src.load_local
-📊 Utilisation de l’Application
+```
+
+### 📊 Utilisation de l’Application
+
 Une fois la base de données alimentée, lancez le dashboard Streamlit :
 
-Bash
-
+```bash
 streamlit run src/streamlit_app.py
-Fonctionnalités clés
-📈 Dashboard Live
+```
+
+### Fonctionnalités clés
+
+📈 **Dashboard Live**
+
 Visualisation des opérations avec filtres dynamiques :
+- Par Année
+- Par CROSS
 
-Par Année
+✏️ **CRUD Réel**
 
-Par CROSS
-
-✏️ CRUD Réel
 Formulaires permettant d'interagir directement avec la BDD :
+- Ajout d’opérations (INSERT)
+- Suppression d’opérations (DELETE)
 
-Ajout d’opérations (INSERT)
+🧩 **Audit & Modélisation**
 
-Suppression d’opérations (DELETE)
-
-🧩 Audit & Modélisation
 Visualisation du modèle relationnel des données (Graphviz).
 
-🛠 Stack Technique
-Langage : Python
+### 🛠 Stack Technique
 
-Base de données : PostgreSQL
+- **Langage :** Python
+- **Base de données :** PostgreSQL
+- **Infrastructure :** Docker
+- **ORM :** SQLAlchemy
+- **Qualité de données :** Pandera
+- **Frontend :** Streamlit, Plotly, Graphviz
 
-Infrastructure : Docker
+### 👥 Auteurs
 
-ORM : SQLAlchemy
+Simplon - Data Engineer :
 
-Qualité de données : Pandera
+- Sabine
+- Ali
+- Yohan
+- Khalid (chef de projet)
 
-Frontend : Streamlit, Plotly, Graphviz
-
-👥 Auteurs
-Projet réalisé par l’équipe Data Engineering — Simplon :
-
-Sabine
-
-Ali
-
-Yohan
-
-Khalid
+---
