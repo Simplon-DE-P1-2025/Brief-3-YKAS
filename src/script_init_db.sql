@@ -18,7 +18,7 @@ CREATE TABLE operations (
     moyen_alerte VARCHAR,
     qui_alerte VARCHAR,
     categorie_qui_alerte VARCHAR,
-    cross VARCHAR,
+    cross_name VARCHAR,
     departement VARCHAR,
     est_metropolitain BOOLEAN,
     evenement VARCHAR,
@@ -159,7 +159,7 @@ CREATE INDEX idx_operation_stats_date ON operation_stats(date);
 CREATE INDEX idx_operation_stats_annee_mois ON operation_stats(annee, mois);
 
 -- Index sur les dimensions géographiques
-CREATE INDEX idx_operations_cross ON operations(cross);
+CREATE INDEX idx_operations_cross ON operations(cross_name);
 CREATE INDEX idx_operations_departement ON operations(departement);
 CREATE INDEX idx_operation_stats_prefecture ON operation_stats(prefecture_maritime);
 
