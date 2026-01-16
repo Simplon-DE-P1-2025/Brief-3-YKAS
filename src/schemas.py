@@ -3,17 +3,9 @@ from pandera.typing import Series
 from datetime import datetime
 import pandas as pd
 
-# =============================================================================
-# SCHÉMAS PANDERA "STYLÉS" (Règles Métier Pédagogiques)
-# =============================================================================
-
 class OperationsSchema(pa.DataFrameModel):
-    """
-    Schéma STRICT pour Operations.
-    BUT PÉDAGOGIQUE : Rejeter les données 'sales' ou 'anciennes'.
-    """
     operation_id: Series[int] = pa.Field(unique=True, description="ID unique")
-    
+
     type_operation: Series[str] = pa.Field(nullable=True)
     pourquoi_alerte: Series[str] = pa.Field(nullable=True)
     moyen_alerte: Series[str] = pa.Field(nullable=True)
@@ -27,29 +19,24 @@ class OperationsSchema(pa.DataFrameModel):
     autorite: Series[str] = pa.Field(nullable=True)
     seconde_autorite: Series[str] = pa.Field(nullable=True)
     zone_responsabilite: Series[str] = pa.Field(nullable=True)
-    
-    # --- RÈGLE 1 : GEOLOCALISATION OBLIGATOIRE ---
-    # On passe nullable=False. Si pas de GPS -> REJET DIRECT (Fichier 'rejects')
+
+    # GPS obligatoire (assumé)
     latitude: Series[float] = pa.Field(nullable=False, ge=-90, le=90)
     longitude: Series[float] = pa.Field(nullable=False, ge=-180, le=180)
-    
+
     vent_direction: Series[float] = pa.Field(nullable=True, ge=0, le=360)
     vent_direction_categorie: Series[str] = pa.Field(nullable=True)
     vent_force: Series[float] = pa.Field(nullable=True, ge=0)
     mer_force: Series[float] = pa.Field(nullable=True, ge=0)
-    
-    # --- RÈGLE 2 : FILTRE TEMPOREL (Custom Check) ---
-    # On rejette les archives trop vieilles (avant 2000)
+
     date_heure_reception_alerte: Series[datetime] = pa.Field(nullable=True)
     date_heure_fin_operation: Series[datetime] = pa.Field(nullable=True)
-    
+
     @pa.check("date_heure_reception_alerte", name="check_post_2000")
     def check_date_recente(cls, series: Series[datetime]) -> Series[bool]:
-        """Rejette les opérations avant l'an 2000"""
-        # On gère les NaT (Not a Time) en les acceptant ou non
-        return series.dt.year >= 2000
+        # IMPORTANT: si NaT => on accepte (sinon rejet massif)
+        return series.isna() | (series.dt.year >= 2000)
 
-    # Sitrep
     numero_sitrep: Series[float] = pa.Field(nullable=True)
     cross_sitrep: Series[str] = pa.Field(nullable=True)
     fuseau_horaire: Series[str] = pa.Field(nullable=True)
@@ -67,8 +54,6 @@ class ResultatsHumainSchema(pa.DataFrameModel):
     nombre: Series[int] = pa.Field(ge=0)
     dont_nombre_blesse: Series[int] = pa.Field(ge=0)
 
-    # --- RÈGLE 3 : COHÉRENCE LOGIQUE (Cross-Column Check) ---
-    # Le nombre de blessés ne peut pas être supérieur au nombre total !
     @pa.dataframe_check
     def check_logique_blesses(cls, df: pd.DataFrame) -> Series[bool]:
         return df["dont_nombre_blesse"] <= df["nombre"]
@@ -79,7 +64,6 @@ class ResultatsHumainSchema(pa.DataFrameModel):
 
 
 class FlotteursSchema(pa.DataFrameModel):
-    # Schéma permissif standard
     operation_id: Series[int]
     numero_ordre: Series[float] = pa.Field(nullable=True)
     pavillon: Series[str] = pa.Field(nullable=True)
@@ -92,8 +76,8 @@ class FlotteursSchema(pa.DataFrameModel):
         coerce = True
         strict = False
 
+
 class OperationsStatsSchema(pa.DataFrameModel):
-    # Schéma permissif standard
     operation_id: Series[int] = pa.Field(unique=True)
     date: Series[datetime] = pa.Field(nullable=True)
     annee: Series[int] = pa.Field(ge=1900, le=2100)
@@ -133,5 +117,5 @@ class OperationsStatsSchema(pa.DataFrameModel):
     sans_flotteur_implique: Series[bool] = pa.Field(nullable=True)
 
     class Config:
-        coerce = True 
+        coerce = True
         strict = False
