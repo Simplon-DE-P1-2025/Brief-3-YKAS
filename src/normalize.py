@@ -47,6 +47,15 @@ def clean_and_normalize(filename):
     try:
         # Lecture
         df = pd.read_csv(input_path, low_memory=False)
+
+        # --- Déplacement de la logique de renommage depuis load_local.py ---
+        if filename == "operations.csv":
+            if "date_operation" in df.columns and "date_heure_reception_alerte" not in df.columns:
+                df.rename(columns={"date_operation": "date_heure_reception_alerte"}, inplace=True)
+
+        elif filename == "operations_stats.csv":
+            if "date_operation" in df.columns and "date" not in df.columns:
+                df.rename(columns={"date_operation": "date"}, inplace=True)
         
         # Sélection des colonnes texte
         string_cols = df.select_dtypes(include=['object']).columns
